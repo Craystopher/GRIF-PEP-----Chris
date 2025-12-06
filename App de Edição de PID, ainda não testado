@@ -1,0 +1,140 @@
+// 1.1v
+/*
+  Autor: Christian D. R. M.
+  Data:  03/12/2025
+  Objetivo: Fazer um app + código padrão para editar PID de segue linha/perseguidor do GRIF-PEP
+  App: O app foi desenvolvido no MIT App Inventor
+*/
+#include "BluetoothSerial.h"
+
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED) 
+#error Bluetooth is not enabled! Please run make menuconfig to and enable it 
+#endif
+
+#if !defined(CONFIG_BT_SPP_ENABLED)
+#error Serial Port Profile for Bluetooth is not available or not enabled. It is only available for the ESP32 chip.
+#endif 
+
+BluetoothSerial SerialBT;
+
+// Variáveis do PID
+float kp = 0.0;
+float ki = 0.0;
+float kd = 0.0;
+
+String Entrada = "";
+
+bool RoboLigado = false;
+
+void setup() {
+  Serial.begin(115200);
+  SerialBT.begin("ESP32_PID");
+  Serial.printf("Bluetooth LIGADO!");
+}
+
+void loop() {
+  
+  EditPID();
+
+  // --> Start / Stop
+  if(RoboLigado == true){
+    // Logica do segue linha!
+    /*Serial.print("Kp = ");
+    Serial.print(kp);
+    Serial.print(" | Ki = ");
+    Serial.print(ki);
+    Serial.print(" | Kd = ");
+    Serial.println(kd);*/
+  }
+  if(RoboLigado == false){
+    // travar motores ou mandar um vazio
+  }
+}
+
+// --> Função para editar PID
+void EditPID() {
+  if (SerialBT.available()) {
+    char c = SerialBT.read();
+
+    if (c == '\n') {
+      processMessage(Entrada);
+      Entrada = "";
+    } else {
+      Entrada += c;
+      }
+    }
+}
+void processMessage(String valor) {
+
+  Serial.print("Recebido: ");
+  Serial.println(valor);
+
+  // Start Stop
+  if(valor == "S"){
+    RoboLigado = true;
+    Serial.println("Robo Ligado!!");
+    
+    SerialBT.println("Robo Andando!!");
+    return;
+  }
+  if(valor == "s"){
+    RoboLigado = false;
+    Serial.println("Robo Desligado!!");
+
+    SerialBT.println("Robo Parado!!");
+    return;
+  }
+
+  if (valor.startsWith("KP=")) {
+    kp = valor.substring(3).toFloat();
+    Serial.print("Novo Kp: ");
+    Serial.println(kp);
+
+    SerialBT.print("Novo kp = ");
+    SerialBT.println(kp);
+    SerialBT.println("");
+  }
+
+  if (valor.startsWith("KI=")) {
+    ki = valor.substring(3).toFloat();
+    Serial.print("Novo Ki: ");
+    Serial.println(ki);
+
+    SerialBT.print("Novo ki = ");
+    SerialBT.println(ki);
+    SerialBT.println("");
+  }
+
+  if (valor.startsWith("KD=")) {
+    kd = valor.substring(3).toFloat();
+    Serial.print("Novo Kd: ");
+    Serial.println(kd);
+
+    SerialBT.print("Novo kd = ");
+    SerialBT.println(kd);
+    SerialBT.println("");
+  }
+}
+
+
+// ===========================
+//           IDEIAS
+// ===========================
+
+/*
+  * Na parde quando editamos o código da para adicionar la no  MIT inventor
+  para retornar um historico no proprio app, não sei se e muito dificil, 
+  mas vou deixar para fazer isso depois porque não sei se o povo vai 
+  aceitar esse app kkkkkk, mas realmente e muito interessante. 
+
+  * Talvez algum dia sei lá, de para fazer uma biblioteca para o grupo de 
+  robotica usar como padrão nas competições, mas daria um trampo do caramba
+  mesmo o codigo base sendo pequeno, nunca se sabe como isso afeta o precessamento
+  de dados da ESP32, tlvz eu refine isso ao decorrer do tempo quando for implementado.
+  Como, quando estiver andando apenas Start/Stop Funcionem, e quando parar o editPID
+  funcione integralmente, mas acho que mesmo assim não vai mudar tanto o codigo,
+  querendo ou não o EditPID() faz apenas a leitura do BT e quando o BT.available() tem
+  algum bit esperando, ent não ocupa tanto processamento, e o processMessage() e apenas
+  if´s impilhados então quando não e verdadeiro não faz realmente nada.
+  Talvez realmente não precise de tudo isso mesmo, já esta bom até essa versão 1.1v
+*/
